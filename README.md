@@ -1,61 +1,45 @@
-# FX移動平均線分析アプリ
+# FX移動平均線戦略分析
 
-15分足USDJPYデータを使用した移動平均線分析のStreamlitアプリケーション。
+USDJPY 15分足データを使用した移動平均線戦略分析アプリケーション。
 
-## 📁 プロジェクト構造
-
-```
-FXResearch/
-├── app.py                                    # メインアプリ
-├── requirements.txt                          # 依存関係
-├── README.md                                # 説明書
-│
-├── data/                                    # データ・処理
-│   ├── USDJPY_2022_15min.csv
-│   ├── USDJPY_2023_15min.csv
-│   ├── USDJPY_2024_15min.csv
-│   └── fx_data_loader.py                    # データ読み込み
-│
-├── indicator/                               # テクニカル指標
-│   ├── moving_averages.py                   # 移動平均線
-│   ├── rsi_indicator.py                     # RSI
-│   └── atr_indicator.py                     # ATR
-│
-├── strategy/                                # 戦略
-│   └── perfect_order_strategy.py            # パーフェクトオーダー
-│
-├── chart/                                   # チャート
-│   └── candlestick_charts.py               # ローソク足
-│
-├── component/                               # UI
-│   └── sidebar_component.py                 # サイドバー
-│
-└── test/                                   # テスト
-```
-
-## 📋 命名ルール
-
-- **ディレクトリ**: 単数形（`indicator/`, `strategy/`）
-- **ファイル**: 機能を明確に表現（`fx_data_loader.py`）
-
-## 🚀 使用方法
+## 🚀 起動方法
 
 ```bash
-# 環境セットアップ
-conda activate research
+# 依存関係インストール
 pip install -r requirements.txt
 
 # アプリ実行
 streamlit run app.py
 ```
 
-## 🎯 機能
+## 📊 機能
 
-- **移動平均線分析**: MA25、MA75、MA200
-- **パーフェクトオーダー戦略**: エントリー・決済シグナル
-- **RSI・ATR分析**: 補助指標
-- **インタラクティブチャート**: Plotly
-- **年別データ選択**: 2022-2024年
+- **パーフェクトオーダー戦略**: MA25 > MA75 > MA200の強気トレンド
+- **RSI・ATR分析**: エントリーフィルターとリスク管理
+- **インタラクティブチャート**: ローソク足・移動平均線・取引詳細
+- **年別データ選択**: 2022-2024年のデータ分析
+
+## 📁 プロジェクト構造
+
+```
+FXResearch/
+├── app.py                    # メインアプリ
+├── core/                     # アプリケーション制御
+├── data_processor/           # データ処理
+├── indicator/                # テクニカル指標
+├── strategy/                 # 戦略ロジック
+├── analysis/                 # 分析表示
+├── chart/                    # チャート作成
+├── component/                # UIコンポーネント
+└── data/                     # CSVデータ
+```
+
+## 🎯 戦略概要
+
+- **エントリー**: パーフェクトオーダー + 価格ブレイク + RSI 30-70
+- **決済**: デッドクロス（強気）またはゴールデンクロス（弱気）
+- **ストップロス**: 200MAベース
+- **レバレッジ**: 25倍（初期資金1万円）
 
 ## 🔧 技術スタック
 
