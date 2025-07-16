@@ -128,12 +128,22 @@ class FXAnalysisApp:
         # 戦略分析
         trades_df, performance_stats = self.analyze_strategy(df)
         
+        # 取引リスト選択UI追加
+        selected_trade_idx = None
+        if not trades_df.empty:
+            trade_options = []
+            for i, trade in trades_df.iterrows():
+                label = f"取引{i}: {trade.name} → {trade.name+1} (損益: {int(trade['profit_loss']):,}円)"
+                trade_options.append(label)
+            selected_trade_label = st.selectbox("詳細を見たい取引を選択:", trade_options)
+            selected_trade_idx = trade_options.index(selected_trade_label)
+        
         # メインコンテンツ
         col1, col2 = st.columns([2, 1])
         
         with col1:
             # チャート表示
-            self.render_charts(df, trades_df)
+            self.render_charts(df, trades_df, selected_trade_idx)
         
         with col2:
             # 統計表示
@@ -179,7 +189,7 @@ class FXAnalysisApp:
         
         return trades_df, performance_stats
     
-    def render_charts(self, df, trades_df):
+    def render_charts(self, df, trades_df, selected_trade_idx=None):
         """チャートを表示"""
         # ローソク足チャート
         candlestick_fig = create_candlestick_chart(df)
@@ -190,10 +200,10 @@ class FXAnalysisApp:
         st.plotly_chart(ma_fig, use_container_width=True)
         
         # 取引詳細チャート
-        if not trades_df.empty:
-            for _, trade in trades_df.iterrows():
-                trade_fig = create_trade_detail_chart(df, trade)
-                st.plotly_chart(trade_fig, use_container_width=True)
+        if not trades_df.empty and selected_trade_idx is not None:
+            trade = trades_df.iloc[selected_trade_idx]
+            trade_fig = create_trade_detail_chart(df, trade)
+            st.plotly_chart(trade_fig, use_container_width=True)
     
     def render_statistics(self, df, trades_df, performance_stats):
         """統計情報を表示"""

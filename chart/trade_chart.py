@@ -143,4 +143,7 @@ class TradeDetailChart(BaseChart):
     def _create_trade_title(self, trade):
         """取引タイトルを作成"""
         profit_loss_text = f"損益: {trade['profit_loss']:,.0f}円 ({trade['profit_loss_pct']:.2f}%)"
-        return f'取引詳細: {trade["entry_date"].strftime("%Y-%m-%d %H:%M")} → {trade["exit_date"].strftime("%Y-%m-%d %H:%M")}<br>{profit_loss_text}' 
+        # インデックス表記に修正
+        entry_idx = trade.name
+        exit_idx = trade.name + 1
+        return f'取引詳細: {entry_idx} → {exit_idx}<br>{profit_loss_text}' 
