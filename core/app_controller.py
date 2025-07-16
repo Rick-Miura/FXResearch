@@ -9,10 +9,15 @@ import plotly.express as px
 # カスタムモジュールのインポート
 from data_processor import load_fx_data, get_data_range
 from chart import create_trade_detail_chart, create_profit_loss_chart
-from component import render_sidebar, render_basic_stats, render_trend_analysis, render_statistics_tables, render_signal_analysis
+from component import render_sidebar, render_basic_stats, render_trade_summary
 from strategy import detect_perfect_order, analyze_trading_signals, calculate_strategy_performance, get_strategy_statistics
 from indicator.technical_analysis import calculate_moving_averages, calculate_rsi, calculate_atr, calculate_cross_signals
-from analysis import render_rsi_analysis, render_atr_analysis
+from analysis import (
+    render_rsi_analysis, render_atr_analysis,
+    render_price_deviation_analysis, render_ma_slope_analysis,
+    render_volatility_analysis, render_trend_strength_analysis,
+    render_win_rate_analysis, render_rsi_divergence_analysis
+)
 
 class FXAnalysisApp:
     """FX分析アプリケーションのメインコントローラー"""
@@ -102,14 +107,11 @@ class FXAnalysisApp:
             st.markdown("強気トレンド: 200MAを下回った時")
             st.markdown("弱気トレンド: 200MAを上回った時")
             
-            st.markdown("### 🎯 利確条件")
-            st.markdown("**💰 動的利確**")
-            st.markdown("現在の含み益がエントリー時の価格と200MAとの差のn倍を超えた場合")
-            st.markdown("※サイドバーで倍数を調整可能（0.5～2.0倍）")
+
             
             st.markdown("### 💡 戦略概要")
             st.markdown("**エントリー:** パーフェクトオーダーかつ価格がMA25を外に抜けた時かつRSIが30～70の範囲内")
-            st.markdown("**決済:** 利確（n倍条件）またはデッドクロス（強気）またはゴールデンクロス（弱気）")
+            st.markdown("**決済:** デッドクロス（強気）またはゴールデンクロス（弱気）")
             st.markdown("**ストップロス:** 200MAベース")
             st.markdown("**RSI条件:** 過買い（70以上）・過売り（30以下）を避ける")
     
@@ -124,7 +126,7 @@ class FXAnalysisApp:
         result = self.load_data()
         if result[0] is None:
             return
-        df, profit_multiplier, n_continued = result
+        df, n_continued = result
         
         if df is None or df.empty:
             st.error("データが見つかりません")
@@ -134,7 +136,11 @@ class FXAnalysisApp:
         df = self.calculate_technical_indicators(df)
         
         # 戦略分析
-        trades_df, performance_stats = self.analyze_strategy(df, profit_multiplier, n_continued)
+        trades_df, performance_stats = self.analyze_strategy(df, n_continued)
+        
+        # 取引統計サマリーを最初に表示
+        if not trades_df.empty:
+            render_trade_summary(trades_df)
         
         # メインコンテンツ
         col1, col2 = st.columns([2, 1])
@@ -178,26 +184,17 @@ class FXAnalysisApp:
             help="パーフェクトオーダーが何回連続した場合にエントリーするか"
         )
         
-        # 利確条件の倍数設定
-        st.sidebar.markdown("### 🎯 利確条件設定")
-        profit_multiplier = st.sidebar.slider(
-            "利確倍数",
-            min_value=0.5,
-            max_value=2.0,
-            value=2.0,
-            step=0.5,
-            help="現在の含み益がエントリー時の価格と200MAとの差の何倍を超えた場合に利確するか"
-        )
+
         
         # データファイルパス
         file_path = f"data/USDJPY_{selected_year}_15min.csv"
         
         try:
             df = load_fx_data(file_path)
-            return df, profit_multiplier, n_continued
+            return df, n_continued
         except Exception as e:
             st.error(f"データ読み込みエラー: {e}")
-            return None, None, None
+            return None, None
     
     def calculate_technical_indicators(self, df):
         """テクニカル指標を計算"""
@@ -207,16 +204,16 @@ class FXAnalysisApp:
         df = calculate_cross_signals(df)
         return df
     
-    def analyze_strategy(self, df, profit_multiplier=2.0, n_continued=1):
+    def analyze_strategy(self, df, n_continued=1):
         """戦略分析を実行"""
         # パーフェクトオーダー検出
         df = detect_perfect_order(df)
         
         # 取引シグナル分析
-        df = analyze_trading_signals(df, n_continued=n_continued, profit_multiplier=profit_multiplier)
+        df = analyze_trading_signals(df, n_continued=n_continued)
         
         # パフォーマンス計算
-        trades_df = calculate_strategy_performance(df, profit_multiplier=profit_multiplier)
+        trades_df = calculate_strategy_performance(df)
         
         # 統計計算
         performance_stats = get_strategy_statistics(trades_df)
@@ -226,37 +223,23 @@ class FXAnalysisApp:
     def render_trade_chart(self, df, trades_df, selected_trade_idx):
         """選択された取引の詳細チャートを表示"""
         if selected_trade_idx is not None and not trades_df.empty:
-            # 損益推移チャートを表示
-            profit_loss_fig = create_profit_loss_chart(trades_df)
-            if profit_loss_fig:
-                st.plotly_chart(profit_loss_fig, use_container_width=True)
-            
             # 選択された取引の詳細チャートを表示
             trade = trades_df.iloc[selected_trade_idx]
             trade_fig = create_trade_detail_chart(df, trade)
             st.plotly_chart(trade_fig, use_container_width=True)
+            
+            # 損益推移チャートを表示
+            profit_loss_fig = create_profit_loss_chart(trades_df)
+            if profit_loss_fig:
+                st.plotly_chart(profit_loss_fig, use_container_width=True)
     
     def render_statistics(self, df, trades_df, performance_stats):
         """統計情報を表示"""
-        # 基本統計
+        # 基本統計のみ表示
         min_date, max_date = get_data_range(df)
         render_basic_stats(df, min_date, max_date)
-        
-        # トレンド分析
-        render_trend_analysis(df, min_date, max_date)
-        
-        # 統計テーブル
-        render_statistics_tables(df, min_date, max_date)
-        
-        # シグナル分析
-        golden_crosses, dead_crosses = self.get_cross_signals(df)
-        render_signal_analysis(golden_crosses, dead_crosses)
     
-    def get_cross_signals(self, df):
-        """クロスシグナルを取得"""
-        golden_crosses = df[df['Golden_Cross_25_75']]
-        dead_crosses = df[df['Dead_Cross_25_75']]
-        return golden_crosses, dead_crosses
+
     
     def render_detailed_analysis(self, trades_df):
         """詳細分析を表示"""
@@ -266,11 +249,23 @@ class FXAnalysisApp:
         # 分析タイプ選択
         analysis_type = st.selectbox(
             "詳細分析を選択",
-            ["RSI分析", "ATR分析"],
+            ["価格乖離率分析", "MA傾き分析", "ボラティリティ分析", "トレンド強度分析", "勝率分析", "RSIダイバージェンス分析", "RSI分析", "ATR分析"],
             index=0
         )
         
-        if analysis_type == "RSI分析":
+        if analysis_type == "価格乖離率分析":
+            render_price_deviation_analysis(trades_df)
+        elif analysis_type == "MA傾き分析":
+            render_ma_slope_analysis(trades_df)
+        elif analysis_type == "ボラティリティ分析":
+            render_volatility_analysis(trades_df)
+        elif analysis_type == "トレンド強度分析":
+            render_trend_strength_analysis(trades_df)
+        elif analysis_type == "勝率分析":
+            render_win_rate_analysis(trades_df)
+        elif analysis_type == "RSIダイバージェンス分析":
+            render_rsi_divergence_analysis(trades_df)
+        elif analysis_type == "RSI分析":
             render_rsi_analysis(trades_df)
         elif analysis_type == "ATR分析":
             render_atr_analysis(trades_df) 

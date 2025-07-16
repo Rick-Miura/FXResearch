@@ -26,4 +26,9 @@ def render_statistics_tables(df, start_date, end_date):
 def render_signal_analysis(golden_crosses, dead_crosses):
     """シグナル分析をレンダリング"""
     signal_analyzer = _ui_factory.get_signal_analyzer()
-    return signal_analyzer.render_signal_analysis(golden_crosses, dead_crosses) 
+    return signal_analyzer.render_signal_analysis(golden_crosses, dead_crosses)
+
+def render_trade_summary(trades_df):
+    """取引統計サマリーをレンダリング"""
+    from component.trade_summary import render_trade_summary as render_summary
+    return render_summary(trades_df) 

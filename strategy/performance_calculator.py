@@ -10,9 +10,8 @@ class PerformanceCalculator:
         self.position_size = self.initial_capital * self.leverage
         self.profit_multiplier = 2.0  # デフォルト値
     
-    def calculate_strategy_performance(self, df, profit_multiplier=2.0):
+    def calculate_strategy_performance(self, df):
         """戦略のパフォーマンスを計算"""
-        self.profit_multiplier = profit_multiplier  # 利確倍数を設定
         df = df.copy()
         trades = []
         in_position = False
@@ -69,32 +68,16 @@ class PerformanceCalculator:
         """決済処理"""
         exit_reason = None
         
-        # 利確条件: 現在の含み益がエントリー時の価格と200MAとの差のn倍を超えた場合
-        if entry_price and entry_ma200:
-            entry_price_ma200_diff = abs(entry_price - entry_ma200)
-            current_price = row['Close']
-            
-            if entry_trend == 'bullish':
-                current_profit = (current_price - entry_price) * (self.position_size / entry_price)
-                if current_profit > entry_price_ma200_diff * self.profit_multiplier:
-                    exit_reason = f'利確（{self.profit_multiplier}倍条件）'
-            elif entry_trend == 'bearish':
-                current_profit = -(current_price - entry_price) * (self.position_size / entry_price)
-                if current_profit > entry_price_ma200_diff * self.profit_multiplier:
-                    exit_reason = f'利確（{self.profit_multiplier}倍条件）'
-        
-        # 既存の決済条件
-        if not exit_reason:
-            # トレンドごとの決済
-            if entry_trend == 'bullish' and row['exit_signal_bullish']:
-                exit_reason = 'デッドクロス'
-            elif entry_trend == 'bearish' and row['exit_signal_bearish']:
-                exit_reason = 'ゴールデンクロス'
-            # 200MAストップロス
-            elif entry_trend == 'bullish' and row['Close'] < row['MA200']:
-                exit_reason = '200MAストップロス'
-            elif entry_trend == 'bearish' and row['Close'] > row['MA200']:
-                exit_reason = '200MAストップロス'
+        # トレンドごとの決済
+        if entry_trend == 'bullish' and row['exit_signal_bullish']:
+            exit_reason = 'デッドクロス'
+        elif entry_trend == 'bearish' and row['exit_signal_bearish']:
+            exit_reason = 'ゴールデンクロス'
+        # 200MAストップロス
+        elif entry_trend == 'bullish' and row['Close'] < row['MA200']:
+            exit_reason = '200MAストップロス'
+        elif entry_trend == 'bearish' and row['Close'] > row['MA200']:
+            exit_reason = '200MAストップロス'
         
         if exit_reason:
             return {

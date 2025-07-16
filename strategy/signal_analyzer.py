@@ -3,7 +3,7 @@ import pandas as pd
 class SignalAnalyzer:
     """取引シグナル分析クラス"""
     
-    def analyze_trading_signals(self, df, n_continued=1, profit_multiplier=2.0):
+    def analyze_trading_signals(self, df, n_continued=1):
         """取引シグナルを分析"""
         df = df.copy()
         
