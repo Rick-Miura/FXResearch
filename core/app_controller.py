@@ -8,7 +8,7 @@ import plotly.express as px
 
 # カスタムモジュールのインポート
 from data_processor import load_fx_data, get_data_range
-from chart import create_candlestick_chart, create_moving_average_comparison_chart, create_trade_detail_chart
+from chart import create_trade_detail_chart, create_profit_loss_chart
 from component import render_sidebar, render_basic_stats, render_trend_analysis, render_statistics_tables, render_signal_analysis
 from strategy import detect_perfect_order, analyze_trading_signals, calculate_strategy_performance, get_strategy_statistics
 from indicator.technical_analysis import calculate_moving_averages, calculate_rsi, calculate_atr, calculate_cross_signals
@@ -124,7 +124,7 @@ class FXAnalysisApp:
         result = self.load_data()
         if result[0] is None:
             return
-        df, profit_multiplier = result
+        df, profit_multiplier, n_continued = result
         
         if df is None or df.empty:
             st.error("データが見つかりません")
@@ -134,24 +134,25 @@ class FXAnalysisApp:
         df = self.calculate_technical_indicators(df)
         
         # 戦略分析
-        trades_df, performance_stats = self.analyze_strategy(df, profit_multiplier)
-        
-        # 取引リスト選択UI追加
-        selected_trade_idx = None
-        if not trades_df.empty:
-            trade_options = []
-            for i, trade in trades_df.iterrows():
-                label = f"取引{i}: {trade.name} → {trade.name+1} (損益: {int(trade['profit_loss']):,}円)"
-                trade_options.append(label)
-            selected_trade_label = st.selectbox("詳細を見たい取引を選択:", trade_options)
-            selected_trade_idx = trade_options.index(selected_trade_label)
+        trades_df, performance_stats = self.analyze_strategy(df, profit_multiplier, n_continued)
         
         # メインコンテンツ
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            # チャート表示
-            self.render_charts(df, trades_df, selected_trade_idx)
+            # 取引リスト選択UI追加
+            selected_trade_idx = None
+            if not trades_df.empty:
+                trade_options = []
+                for i, trade in trades_df.iterrows():
+                    label = f"取引{i}: (損益: {int(trade['profit_loss']):,}円)"
+                    trade_options.append(label)
+                selected_trade_label = st.selectbox("詳細を見たい取引を選択:", trade_options)
+                selected_trade_idx = trade_options.index(selected_trade_label)
+            
+            # 選択された取引の詳細チャートのみ表示
+            if selected_trade_idx is not None:
+                self.render_trade_chart(df, trades_df, selected_trade_idx)
         
         with col2:
             # 統計表示
@@ -165,6 +166,17 @@ class FXAnalysisApp:
         # サイドバーから年選択
         years = ["2022", "2023", "2024"]
         selected_year = st.sidebar.selectbox("年を選択", years, index=2)
+        
+        # パーフェクトオーダー連続回数設定
+        st.sidebar.markdown("### 📊 パーフェクトオーダー設定")
+        n_continued = st.sidebar.slider(
+            "パーフェクトオーダー連続回数",
+            min_value=1,
+            max_value=5,
+            value=1,
+            step=1,
+            help="パーフェクトオーダーが何回連続した場合にエントリーするか"
+        )
         
         # 利確条件の倍数設定
         st.sidebar.markdown("### 🎯 利確条件設定")
@@ -182,10 +194,10 @@ class FXAnalysisApp:
         
         try:
             df = load_fx_data(file_path)
-            return df, profit_multiplier
+            return df, profit_multiplier, n_continued
         except Exception as e:
             st.error(f"データ読み込みエラー: {e}")
-            return None, None
+            return None, None, None
     
     def calculate_technical_indicators(self, df):
         """テクニカル指標を計算"""
@@ -195,13 +207,13 @@ class FXAnalysisApp:
         df = calculate_cross_signals(df)
         return df
     
-    def analyze_strategy(self, df, profit_multiplier=2.0):
+    def analyze_strategy(self, df, profit_multiplier=2.0, n_continued=1):
         """戦略分析を実行"""
         # パーフェクトオーダー検出
         df = detect_perfect_order(df)
         
         # 取引シグナル分析
-        df = analyze_trading_signals(df, n_continued=1, profit_multiplier=profit_multiplier)
+        df = analyze_trading_signals(df, n_continued=n_continued, profit_multiplier=profit_multiplier)
         
         # パフォーマンス計算
         trades_df = calculate_strategy_performance(df, profit_multiplier=profit_multiplier)
@@ -211,18 +223,15 @@ class FXAnalysisApp:
         
         return trades_df, performance_stats
     
-    def render_charts(self, df, trades_df, selected_trade_idx=None):
-        """チャートを表示"""
-        # ローソク足チャート
-        candlestick_fig = create_candlestick_chart(df)
-        st.plotly_chart(candlestick_fig, use_container_width=True)
-        
-        # 移動平均線チャート
-        ma_fig = create_moving_average_comparison_chart(df)
-        st.plotly_chart(ma_fig, use_container_width=True)
-        
-        # 取引詳細チャート
-        if not trades_df.empty and selected_trade_idx is not None:
+    def render_trade_chart(self, df, trades_df, selected_trade_idx):
+        """選択された取引の詳細チャートを表示"""
+        if selected_trade_idx is not None and not trades_df.empty:
+            # 損益推移チャートを表示
+            profit_loss_fig = create_profit_loss_chart(trades_df)
+            if profit_loss_fig:
+                st.plotly_chart(profit_loss_fig, use_container_width=True)
+            
+            # 選択された取引の詳細チャートを表示
             trade = trades_df.iloc[selected_trade_idx]
             trade_fig = create_trade_detail_chart(df, trade)
             st.plotly_chart(trade_fig, use_container_width=True)

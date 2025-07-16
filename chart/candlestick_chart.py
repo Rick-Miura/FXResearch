@@ -13,6 +13,9 @@ class CandlestickChart(BaseChart):
         # ローソク足を追加
         self.add_candlestick(fig, chart_df)
         
+        # 移動平均線を追加
+        self.add_moving_averages(fig, chart_df)
+        
         # レイアウト設定
         layout = self.create_base_layout('USDJPY 15分足チャート')
         fig.update_layout(layout)

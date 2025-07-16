@@ -13,4 +13,8 @@ def create_moving_average_comparison_chart(df, start_date=None, end_date=None):
 
 def create_trade_detail_chart(df, trade, buffer_hours=4):
     """特定のトレード期間の詳細チャートを作成（x軸は単位）"""
-    return _chart_factory.create_trade_detail_chart(df, trade, buffer_hours) 
+    return _chart_factory.create_trade_detail_chart(df, trade, buffer_hours)
+
+def create_profit_loss_chart(trades_df):
+    """損益推移チャートを作成"""
+    return _chart_factory.create_profit_loss_chart(trades_df) 

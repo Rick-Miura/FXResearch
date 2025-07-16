@@ -1,6 +1,7 @@
 from chart.candlestick_chart import CandlestickChart
 from chart.ma_chart import MovingAverageChart
 from chart.trade_chart import TradeDetailChart
+from chart.profit_loss_chart import ProfitLossChart
 
 class ChartFactory:
     """チャート作成のファクトリークラス"""
@@ -9,6 +10,7 @@ class ChartFactory:
         self.candlestick_chart = CandlestickChart()
         self.ma_chart = MovingAverageChart()
         self.trade_chart = TradeDetailChart()
+        self.profit_loss_chart = ProfitLossChart()
     
     def create_candlestick_chart(self, df, start_date=None, end_date=None):
         """ローソク足チャートを作成"""
@@ -20,4 +22,8 @@ class ChartFactory:
     
     def create_trade_detail_chart(self, df, trade, buffer_hours=4):
         """取引詳細チャートを作成"""
-        return self.trade_chart.create_chart(df, trade, buffer_hours) 
+        return self.trade_chart.create_chart(df, trade, buffer_hours)
+    
+    def create_profit_loss_chart(self, trades_df):
+        """損益推移チャートを作成"""
+        return self.profit_loss_chart.create_chart(trades_df) 
