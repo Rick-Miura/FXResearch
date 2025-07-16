@@ -8,15 +8,15 @@ def detect_perfect_order(df):
     detector = _strategy_factory.get_perfect_order_detector()
     return detector.detect_perfect_order(df)
 
-def analyze_trading_signals(df, n_continued=1):
+def analyze_trading_signals(df, n_continued=1, profit_multiplier=2.0):
     """取引シグナルを分析"""
     analyzer = _strategy_factory.get_signal_analyzer()
-    return analyzer.analyze_trading_signals(df, n_continued)
+    return analyzer.analyze_trading_signals(df, n_continued, profit_multiplier)
 
-def calculate_strategy_performance(df, atr_multiple=2):
+def calculate_strategy_performance(df, atr_multiple=2, profit_multiplier=2.0):
     """戦略のパフォーマンスを計算"""
     calculator = _strategy_factory.get_performance_calculator()
-    return calculator.calculate_strategy_performance(df)
+    return calculator.calculate_strategy_performance(df, profit_multiplier)
 
 def get_strategy_statistics(trades_df):
     """戦略統計を取得"""

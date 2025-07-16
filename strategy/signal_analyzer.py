@@ -3,7 +3,7 @@ import pandas as pd
 class SignalAnalyzer:
     """取引シグナル分析クラス"""
     
-    def analyze_trading_signals(self, df, n_continued=1):
+    def analyze_trading_signals(self, df, n_continued=1, profit_multiplier=2.0):
         """取引シグナルを分析"""
         df = df.copy()
         
@@ -29,6 +29,7 @@ class SignalAnalyzer:
     def _add_perfect_order_continuation(self, df, n_continued):
         """パーフェクトオーダー継続条件を追加"""
         cond = df['perfect_order']
+        n_continued = int(n_continued)  # 浮動小数点数を整数に変換
         for i in range(1, n_continued+1):
             cond = cond & df['perfect_order'].shift(i)
         df['perfect_order_continued'] = cond

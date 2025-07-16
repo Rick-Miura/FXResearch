@@ -102,9 +102,14 @@ class FXAnalysisApp:
             st.markdown("強気トレンド: 200MAを下回った時")
             st.markdown("弱気トレンド: 200MAを上回った時")
             
+            st.markdown("### 🎯 利確条件")
+            st.markdown("**💰 動的利確**")
+            st.markdown("現在の含み益がエントリー時の価格と200MAとの差のn倍を超えた場合")
+            st.markdown("※サイドバーで倍数を調整可能（0.5～2.0倍）")
+            
             st.markdown("### 💡 戦略概要")
             st.markdown("**エントリー:** パーフェクトオーダーかつ価格がMA25を外に抜けた時かつRSIが30～70の範囲内")
-            st.markdown("**決済:** デッドクロス（強気）またはゴールデンクロス（弱気）")
+            st.markdown("**決済:** 利確（n倍条件）またはデッドクロス（強気）またはゴールデンクロス（弱気）")
             st.markdown("**ストップロス:** 200MAベース")
             st.markdown("**RSI条件:** 過買い（70以上）・過売り（30以下）を避ける")
     
@@ -116,7 +121,10 @@ class FXAnalysisApp:
         self.render_strategy_info()
         
         # データ読み込み
-        df = self.load_data()
+        result = self.load_data()
+        if result[0] is None:
+            return
+        df, profit_multiplier = result
         
         if df is None or df.empty:
             st.error("データが見つかりません")
@@ -126,7 +134,7 @@ class FXAnalysisApp:
         df = self.calculate_technical_indicators(df)
         
         # 戦略分析
-        trades_df, performance_stats = self.analyze_strategy(df)
+        trades_df, performance_stats = self.analyze_strategy(df, profit_multiplier)
         
         # 取引リスト選択UI追加
         selected_trade_idx = None
@@ -158,15 +166,26 @@ class FXAnalysisApp:
         years = ["2022", "2023", "2024"]
         selected_year = st.sidebar.selectbox("年を選択", years, index=2)
         
+        # 利確条件の倍数設定
+        st.sidebar.markdown("### 🎯 利確条件設定")
+        profit_multiplier = st.sidebar.slider(
+            "利確倍数",
+            min_value=0.5,
+            max_value=2.0,
+            value=2.0,
+            step=0.5,
+            help="現在の含み益がエントリー時の価格と200MAとの差の何倍を超えた場合に利確するか"
+        )
+        
         # データファイルパス
         file_path = f"data/USDJPY_{selected_year}_15min.csv"
         
         try:
             df = load_fx_data(file_path)
-            return df
+            return df, profit_multiplier
         except Exception as e:
             st.error(f"データ読み込みエラー: {e}")
-            return None
+            return None, None
     
     def calculate_technical_indicators(self, df):
         """テクニカル指標を計算"""
@@ -176,15 +195,18 @@ class FXAnalysisApp:
         df = calculate_cross_signals(df)
         return df
     
-    def analyze_strategy(self, df):
+    def analyze_strategy(self, df, profit_multiplier=2.0):
         """戦略分析を実行"""
         # パーフェクトオーダー検出
-        perfect_orders = detect_perfect_order(df)
+        df = detect_perfect_order(df)
         
         # 取引シグナル分析
-        trades_df = analyze_trading_signals(df)
+        df = analyze_trading_signals(df, n_continued=1, profit_multiplier=profit_multiplier)
         
         # パフォーマンス計算
+        trades_df = calculate_strategy_performance(df, profit_multiplier=profit_multiplier)
+        
+        # 統計計算
         performance_stats = get_strategy_statistics(trades_df)
         
         return trades_df, performance_stats

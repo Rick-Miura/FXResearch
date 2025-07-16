@@ -8,15 +8,18 @@ class PerformanceCalculator:
         self.initial_capital = 10000
         self.leverage = 25
         self.position_size = self.initial_capital * self.leverage
+        self.profit_multiplier = 2.0  # デフォルト値
     
-    def calculate_strategy_performance(self, df):
+    def calculate_strategy_performance(self, df, profit_multiplier=2.0):
         """戦略のパフォーマンスを計算"""
+        self.profit_multiplier = profit_multiplier  # 利確倍数を設定
         df = df.copy()
         trades = []
         in_position = False
         entry_price = 0
         entry_date = None
         entry_trend = None
+        entry_ma200 = None  # エントリー時の200MAを保存
         
         for idx, row in df.iterrows():
             # エントリー
@@ -27,10 +30,11 @@ class PerformanceCalculator:
                     entry_price = trade_info['entry_price']
                     entry_date = trade_info['entry_date']
                     entry_trend = trade_info['entry_trend']
+                    entry_ma200 = row['MA200']  # エントリー時の200MAを保存
             
             # 決済
             elif in_position:
-                exit_info = self._handle_exit(row, entry_trend)
+                exit_info = self._handle_exit(row, entry_trend, entry_price, entry_ma200)
                 if exit_info:
                     trade = self._create_trade_record(
                         entry_date, entry_price, entry_trend,
@@ -39,6 +43,7 @@ class PerformanceCalculator:
                     )
                     trades.append(trade)
                     in_position = False
+                    entry_ma200 = None  # リセット
         
         return pd.DataFrame(trades)
     
@@ -60,20 +65,36 @@ class PerformanceCalculator:
             'entry_trend': entry_trend
         }
     
-    def _handle_exit(self, row, entry_trend):
+    def _handle_exit(self, row, entry_trend, entry_price, entry_ma200):
         """決済処理"""
         exit_reason = None
         
-        # トレンドごとの決済
-        if entry_trend == 'bullish' and row['exit_signal_bullish']:
-            exit_reason = 'デッドクロス'
-        elif entry_trend == 'bearish' and row['exit_signal_bearish']:
-            exit_reason = 'ゴールデンクロス'
-        # 200MAストップロス
-        elif entry_trend == 'bullish' and row['Close'] < row['MA200']:
-            exit_reason = '200MAストップロス'
-        elif entry_trend == 'bearish' and row['Close'] > row['MA200']:
-            exit_reason = '200MAストップロス'
+        # 利確条件: 現在の含み益がエントリー時の価格と200MAとの差のn倍を超えた場合
+        if entry_price and entry_ma200:
+            entry_price_ma200_diff = abs(entry_price - entry_ma200)
+            current_price = row['Close']
+            
+            if entry_trend == 'bullish':
+                current_profit = (current_price - entry_price) * (self.position_size / entry_price)
+                if current_profit > entry_price_ma200_diff * self.profit_multiplier:
+                    exit_reason = f'利確（{self.profit_multiplier}倍条件）'
+            elif entry_trend == 'bearish':
+                current_profit = -(current_price - entry_price) * (self.position_size / entry_price)
+                if current_profit > entry_price_ma200_diff * self.profit_multiplier:
+                    exit_reason = f'利確（{self.profit_multiplier}倍条件）'
+        
+        # 既存の決済条件
+        if not exit_reason:
+            # トレンドごとの決済
+            if entry_trend == 'bullish' and row['exit_signal_bullish']:
+                exit_reason = 'デッドクロス'
+            elif entry_trend == 'bearish' and row['exit_signal_bearish']:
+                exit_reason = 'ゴールデンクロス'
+            # 200MAストップロス
+            elif entry_trend == 'bullish' and row['Close'] < row['MA200']:
+                exit_reason = '200MAストップロス'
+            elif entry_trend == 'bearish' and row['Close'] > row['MA200']:
+                exit_reason = '200MAストップロス'
         
         if exit_reason:
             return {
