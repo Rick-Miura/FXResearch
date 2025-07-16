@@ -60,7 +60,7 @@ class PerformanceCalculator:
         
         return {
             'entry_price': entry_price,
-            'entry_date': row['DateTime'],
+            'entry_date': row['datetime'],
             'entry_trend': entry_trend
         }
     
@@ -82,7 +82,7 @@ class PerformanceCalculator:
         if exit_reason:
             return {
                 'exit_price': row['Close'],
-                'exit_date': row['DateTime'],
+                'exit_date': row['datetime'],
                 'exit_reason': exit_reason
             }
         

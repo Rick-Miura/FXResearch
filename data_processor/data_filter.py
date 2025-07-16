@@ -22,4 +22,4 @@ class DataFilter:
         """データの範囲を取得"""
         if df is None or df.empty:
             return None, None
-        return df['DateTime'].min(), df['DateTime'].max() 
+        return df['datetime'].min(), df['datetime'].max() 

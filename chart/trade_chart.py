@@ -12,7 +12,7 @@ class TradeDetailChart(BaseChart):
         end_time = trade['exit_date'] + pd.Timedelta(hours=buffer_hours)
         
         # 期間のデータを抽出
-        mask = (df['DateTime'] >= start_time) & (df['DateTime'] <= end_time)
+        mask = (df['datetime'] >= start_time) & (df['datetime'] <= end_time)
         chart_df = df[mask].copy()
         
         # インデックスをリセットして単位として使用
@@ -44,8 +44,8 @@ class TradeDetailChart(BaseChart):
     
     def _get_trade_indices(self, chart_df, trade):
         """取引のインデックスを取得"""
-        entry_idx = chart_df[chart_df['DateTime'] == trade['entry_date']].index
-        exit_idx = chart_df[chart_df['DateTime'] == trade['exit_date']].index
+        entry_idx = chart_df[chart_df['datetime'] == trade['entry_date']].index
+        exit_idx = chart_df[chart_df['datetime'] == trade['exit_date']].index
         
         if len(entry_idx) == 0 or len(exit_idx) == 0:
             # 該当するインデックスが見つからない場合は近似値を使用

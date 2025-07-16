@@ -10,7 +10,8 @@ class DataLoader:
             df = pd.read_csv(file_path)
             df = self._set_column_names(df)
             df = self._parse_datetime(df)
-            df = df.copy().sort_values('DateTime').reset_index(drop=True)
+            df = self._rename_datetime_column(df)
+            df = df.copy().sort_values('datetime').reset_index(drop=True)
             return df
         except Exception as e:
             st.error(f"データ読み込みエラー: {e}")
@@ -25,6 +26,13 @@ class DataLoader:
         else:
             df.columns = ['DateTime', 'Open', 'High', 'Low', 'Close']
             return df
+    
+    def _rename_datetime_column(self, df):
+        """DateTimeカラムをdatetimeにリネーム"""
+        df = df.copy()
+        if 'DateTime' in df.columns:
+            df = df.rename(columns={'DateTime': 'datetime'})
+        return df
     
     def _parse_datetime(self, df):
         """DateTimeをdatetime型に変換"""

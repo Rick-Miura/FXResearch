@@ -21,7 +21,7 @@ class StatsRenderer:
         # date型をdatetime型に変換
         start_datetime = pd.to_datetime(start_date)
         end_datetime = pd.to_datetime(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-        filtered_df = df[(df['DateTime'] >= start_datetime) & (df['DateTime'] <= end_datetime)]
+        filtered_df = df[(df['datetime'] >= start_datetime) & (df['datetime'] <= end_datetime)]
         
         if not filtered_df.empty:
             trend_info = self._analyze_trend(filtered_df)

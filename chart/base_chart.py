@@ -20,7 +20,7 @@ class BaseChart:
         if start_date and end_date:
             start_datetime = pd.to_datetime(start_date)
             end_datetime = pd.to_datetime(end_date) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-            mask = (df['DateTime'] >= start_datetime) & (df['DateTime'] <= end_datetime)
+            mask = (df['datetime'] >= start_datetime) & (df['datetime'] <= end_datetime)
             chart_df = df[mask].copy()
         else:
             chart_df = df.copy()
