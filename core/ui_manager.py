@@ -6,7 +6,8 @@ from analysis import (
     render_rsi_analysis, render_atr_analysis,
     render_price_deviation_analysis, render_ma_slope_analysis,
     render_volatility_analysis, render_trend_strength_analysis,
-    render_win_rate_analysis, render_rsi_divergence_analysis
+    render_win_rate_analysis, render_rsi_divergence_analysis,
+    render_overall_analysis
 )
 
 class UIManager:
@@ -161,11 +162,13 @@ class UIManager:
         # 分析タイプ選択
         analysis_type = st.selectbox(
             "詳細分析を選択",
-            ["価格乖離率分析", "MA傾き分析", "ボラティリティ分析", "トレンド強度分析", "勝率分析", "RSIダイバージェンス分析", "RSI分析", "ATR分析"],
+            ["全体分析", "価格乖離率分析", "MA傾き分析", "ボラティリティ分析", "トレンド強度分析", "勝率分析", "RSIダイバージェンス分析", "RSI分析", "ATR分析"],
             index=0
         )
         
-        if analysis_type == "価格乖離率分析":
+        if analysis_type == "全体分析":
+            render_overall_analysis(trades_df)
+        elif analysis_type == "価格乖離率分析":
             render_price_deviation_analysis(trades_df)
         elif analysis_type == "MA傾き分析":
             render_ma_slope_analysis(trades_df)

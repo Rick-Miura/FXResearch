@@ -1,3 +1,4 @@
+from analysis.base_analyzer import BaseAnalyzer
 from analysis.rsi_analyzer import RSIAnalyzer
 from analysis.atr_analyzer import ATRAnalyzer
 from analysis.price_deviation_analyzer import PriceDeviationAnalyzer
@@ -6,6 +7,7 @@ from analysis.volatility_analyzer import VolatilityAnalyzer
 from analysis.trend_strength_analyzer import TrendStrengthAnalyzer
 from analysis.win_rate_analyzer import WinRateAnalyzer
 from analysis.rsi_divergence_analyzer import RSIDivergenceAnalyzer
+from analysis.overall_analysis import render_overall_analysis
 
 # アナライザーインスタンス
 _rsi_analyzer = RSIAnalyzer()
@@ -47,4 +49,9 @@ def render_win_rate_analysis(trades_df):
 
 def render_rsi_divergence_analysis(trades_df):
     """RSIダイバージェンス分析を表示"""
-    return _rsi_divergence_analyzer.render_rsi_divergence_analysis(trades_df) 
+    return _rsi_divergence_analyzer.render_rsi_divergence_analysis(trades_df)
+
+def render_overall_analysis(trades_df):
+    """全体分析を表示"""
+    from analysis.overall_analysis import render_overall_analysis as overall_analysis_func
+    return overall_analysis_func(trades_df) 

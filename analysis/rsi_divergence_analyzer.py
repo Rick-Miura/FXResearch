@@ -1,9 +1,9 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-from scipy.stats import ttest_ind
+from analysis.base_analyzer import BaseAnalyzer
 
-class RSIDivergenceAnalyzer:
+class RSIDivergenceAnalyzer(BaseAnalyzer):
     """RSIダイバージェンス分析クラス"""
     
     def render_rsi_divergence_analysis(self, trades_df):
@@ -44,8 +44,7 @@ class RSIDivergenceAnalyzer:
         loss_mean, loss_std = stats(loss_data)
 
         # t検定
-        ttest = ttest_ind(profit_data, loss_data, equal_var=False, nan_policy='omit')
-        p_value = self._get_pvalue(ttest)
+        p_value = self.calculate_t_test_p_value(profit_data, loss_data)
 
         return {
             'profit_mean': profit_mean,
@@ -55,13 +54,7 @@ class RSIDivergenceAnalyzer:
             'p_value': p_value
         }
 
-    def _get_pvalue(self, ttest_result):
-        """p値を取得"""
-        if hasattr(ttest_result, 'pvalue'):
-            return float(ttest_result.pvalue)
-        elif isinstance(ttest_result, (tuple, list)) and len(ttest_result) > 1:
-            return float(ttest_result[1])
-        return float('nan')
+
 
     def _render_histograms(self, divergence_profit, divergence_loss):
         """ヒストグラムを表示"""
@@ -104,4 +97,12 @@ class RSIDivergenceAnalyzer:
         """p値バッジを生成"""
         color = '#28a745' if p < 0.05 else '#6c757d'
         text = '有意差あり' if p < 0.05 else '有意差なし'
-        return f"{label}: <span style='background:{color};color:white;padding:2px 8px;border-radius:8px;font-weight:bold;'>p={p:.4f} {text}</span>" 
+        return f"{label}: <span style='background:{color};color:white;padding:2px 8px;border-radius:8px;font-weight:bold;'>p={p:.4f} {text}</span>"
+    
+    def calculate_p_value(self, trades_df):
+        """p値を計算"""
+        # 仮のデータ（実際はtrades_dfに含まれる必要）
+        if 'entry_rsi' not in trades_df.columns:
+            return 1.0
+        
+        return self.calculate_group_comparison_p_value(trades_df, 'entry_rsi') 

@@ -2,8 +2,9 @@ import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
+from analysis.base_analyzer import BaseAnalyzer
 
-class WinRateAnalyzer:
+class WinRateAnalyzer(BaseAnalyzer):
     """勝率分析クラス"""
     
     def render_win_rate_analysis(self, trades_df):
@@ -39,17 +40,28 @@ class WinRateAnalyzer:
         """RSI範囲別勝率を表示"""
         st.markdown("#### RSI範囲別勝率")
         
-        # RSI範囲を作成
-        trades_df['rsi_range'] = pd.cut(trades_df['entry_rsi'], 
-                                       bins=[0, 30, 40, 50, 60, 70, 100], 
-                                       labels=['30以下', '30-40', '40-50', '50-60', '60-70', '70以上'])
+        # エントリー条件に合わせてRSIが30-70の範囲内の取引のみを分析
+        valid_trades = trades_df[(trades_df['entry_rsi'] >= 30) & (trades_df['entry_rsi'] <= 70)]
         
-        rsi_stats = trades_df.groupby('rsi_range').agg({
+        if valid_trades.empty:
+            st.info("RSI 30-70の範囲内の取引がありません")
+            return
+        
+        # RSI範囲を作成（30-70の範囲内のみ）
+        valid_trades['rsi_range'] = pd.cut(valid_trades['entry_rsi'], 
+                                          bins=[30, 40, 50, 60, 70], 
+                                          labels=['30-40', '40-50', '50-60', '60-70'])
+        
+        rsi_stats = valid_trades.groupby('rsi_range').agg({
             'profit_loss': ['count', lambda x: (x > 0).sum()]
         }).round(2)
         
         rsi_stats.columns = ['総取引数', '勝ち取引数']
         rsi_stats['勝率'] = (rsi_stats['勝ち取引数'] / rsi_stats['総取引数'] * 100).round(1)
-        rsi_stats['平均損益'] = trades_df.groupby('rsi_range')['profit_loss'].mean().round(0)
+        rsi_stats['平均損益'] = valid_trades.groupby('rsi_range')['profit_loss'].mean().round(0)
         
-        st.dataframe(rsi_stats, use_container_width=True) 
+        st.dataframe(rsi_stats, use_container_width=True)
+    
+    def calculate_p_value(self, trades_df):
+        """p値を計算（カイ二乗検定で勝率の有意差を検定）"""
+        return self.calculate_chi2_p_value(trades_df, 'entry_trend') 

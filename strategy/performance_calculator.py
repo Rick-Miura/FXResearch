@@ -19,6 +19,10 @@ class PerformanceCalculator:
         entry_date = None
         entry_trend = None
         entry_ma200 = None  # エントリー時の200MAを保存
+        entry_rsi = None  # エントリー時のRSIを保存
+        entry_atr = None  # エントリー時のATRを保存
+        entry_ma25 = None  # エントリー時のMA25を保存
+        entry_ma75 = None  # エントリー時のMA75を保存
         
         for idx, row in df.iterrows():
             # エントリー
@@ -30,6 +34,10 @@ class PerformanceCalculator:
                     entry_date = trade_info['entry_date']
                     entry_trend = trade_info['entry_trend']
                     entry_ma200 = row['MA200']  # エントリー時の200MAを保存
+                    entry_rsi = row['RSI'] if 'RSI' in row else None  # エントリー時のRSIを保存
+                    entry_atr = row['ATR'] if 'ATR' in row else None  # エントリー時のATRを保存
+                    entry_ma25 = row['MA25'] if 'MA25' in row else None  # エントリー時のMA25を保存
+                    entry_ma75 = row['MA75'] if 'MA75' in row else None  # エントリー時のMA75を保存
             
             # 決済
             elif in_position:
@@ -38,13 +46,29 @@ class PerformanceCalculator:
                     trade = self._create_trade_record(
                         entry_date, entry_price, entry_trend,
                         exit_info['exit_date'], exit_info['exit_price'],
-                        exit_info['exit_reason'], row
+                        exit_info['exit_reason'], row,
+                        entry_rsi, entry_atr, entry_ma25, entry_ma75
                     )
                     trades.append(trade)
                     in_position = False
                     entry_ma200 = None  # リセット
+                    entry_rsi = None  # リセット
+                    entry_atr = None  # リセット
+                    entry_ma25 = None  # リセット
+                    entry_ma75 = None  # リセット
         
-        return pd.DataFrame(trades)
+        trades_df = pd.DataFrame(trades)
+        
+        # デバッグ情報を表示
+        if not trades_df.empty:
+            rsi_out_of_range = trades_df[(trades_df['entry_rsi'] < 30) | (trades_df['entry_rsi'] > 70)]
+            if not rsi_out_of_range.empty:
+                print(f"⚠️ 警告: RSI 30-70範囲外の取引が{len(rsi_out_of_range)}件あります")
+                print(f"RSI範囲外の取引: {rsi_out_of_range['entry_rsi'].tolist()}")
+            else:
+                print(f"✅ RSI 30-70範囲内の取引のみ: {len(trades_df)}件")
+        
+        return trades_df
     
     def _handle_entry(self, row):
         """エントリー処理"""
@@ -89,7 +113,8 @@ class PerformanceCalculator:
         return None
     
     def _create_trade_record(self, entry_date, entry_price, entry_trend, 
-                           exit_date, exit_price, exit_reason, row):
+                           exit_date, exit_price, exit_reason, row,
+                           entry_rsi=None, entry_atr=None, entry_ma25=None, entry_ma75=None):
         """取引記録を作成"""
         # 損益計算
         price_change = exit_price - entry_price
@@ -115,11 +140,11 @@ class PerformanceCalculator:
             'duration_days': (exit_date - entry_date).days,
             'position_size': self.position_size,
             'leverage': self.leverage,
-            'entry_rsi': row['RSI'] if 'RSI' in row else None,
-            'exit_rsi': row['RSI'] if 'RSI' in row else None,
-            'entry_atr': row['ATR'] if 'ATR' in row else None,
-            'entry_ma25_deviation': self._calculate_ma_deviation(entry_price, row['MA25']),
-            'entry_ma75_deviation': self._calculate_ma_deviation(entry_price, row['MA75']),
+            'entry_rsi': entry_rsi,  # エントリー時のRSI
+            'exit_rsi': row['RSI'] if 'RSI' in row else None,  # 決済時のRSI
+            'entry_atr': entry_atr,  # エントリー時のATR
+            'entry_ma25_deviation': self._calculate_ma_deviation(entry_price, entry_ma25),
+            'entry_ma75_deviation': self._calculate_ma_deviation(entry_price, entry_ma75),
             'entry_trend': entry_trend
         }
     
